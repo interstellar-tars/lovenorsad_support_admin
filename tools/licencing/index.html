@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-50 text-gray-900">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Licensing Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg:white dark:bg-gray-800 p-6 space-y-6 max-w-3xl mx-auto">
+
+  <h1 class="text-2xl font-bold mb-4">Licensing Admin Dashboard</h1>
+
+  <!-- Add Product Form -->
+  <form id="productForm" class="space-y-4 p-4 bg-white shadow rounded">
+    <h2 class="text-xl font-semibold">Add New Product</h2>
+    <div class="grid gap-2">
+      <input type="text" id="modelId" placeholder="Model ID (e.g. solara)" class="border p-2 rounded w-full" required>
+      <select id="type" class="border p-2 rounded w-full">
+        <option value="gamepass">Gamepass</option>
+        <option value="devproduct">Developer Product</option>
+      </select>
+      <input type="text" id="assetId" placeholder="Roblox Asset ID" class="border p-2 rounded w-full" required>
+    </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Add Product</button>
+    <p id="formStatus" class="text-sm mt-2 text-green-600 hidden">Product added!</p>
+  </form>
+
+  <!-- Existing Products -->
+  <section class="p-4 bg-white shadow rounded space-y-2">
+    <h2 class="text-xl font-semibold">Registered Products</h2>
+    <ul id="productList" class="text-sm text-gray-800 space-y-1">
+      <li>Loading...</li>
+    </ul>
+  </section>
+
+  <!-- License Check -->
+  <form id="checkForm" class="p-4 bg-white shadow rounded space-y-2">
+    <h2 class="text-xl font-semibold">Check User Licenses</h2>
+    <input type="text" id="checkUserId" placeholder="Roblox User ID" class="border p-2 rounded w-full" required>
+    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Check Licenses</button>
+    <div id="checkResult" class="text-sm mt-2"></div>
+  </form>
+
+  <script>
+    const apiBase = "https://your-worker.subdomain.workers.dev"; // Replace with your actual endpoint
+
+    async function fetchProducts() {
+      const res = await fetch(apiBase + "/licenses?userId=admin-bypass");
+      const list = document.getElementById("productList");
+      if (!res.ok) return list.innerHTML = "<li>Failed to load products.</li>";
+      const data = await res.json();
+      list.innerHTML = "";
+      data.licenses.forEach(id => {
+        const li = document.createElement("li");
+        li.textContent = `• ${id}`;
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById("productForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const modelId = document.getElementById("modelId").value;
+      const type = document.getElementById("type").value;
+      const assetId = document.getElementById("assetId").value;
+      const status = document.getElementById("formStatus");
+
+      const res = await fetch(apiBase + "/products/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modelId, type, assetId })
+      });
+
+      if (res.ok) {
+        status.classList.remove("hidden");
+        status.textContent = "Product added!";
+        fetchProducts();
+      } else {
+        status.classList.remove("hidden");
+        status.textContent = "Error adding product.";
+        status.classList.add("text-red-600");
+      }
+    };
+
+    document.getElementById("checkForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const userId = document.getElementById("checkUserId").value;
+      const out = document.getElementById("checkResult");
+
+      out.innerHTML = "Checking...";
+      const res = await fetch(apiBase + "/licenses?userId=" + encodeURIComponent(userId));
+      if (!res.ok) return out.innerHTML = "Failed to check.";
+
+      const data = await res.json();
+      out.innerHTML = `<strong>Licenses:</strong> ${data.licenses.join(", ")}`;
+    };
+
+    fetchProducts();
+  </script>
+</body>
+</html>
